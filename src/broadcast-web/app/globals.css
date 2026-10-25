@@ -1030,3 +1030,4 @@ td {
     flex: 1;
   }
 }
+label.flex { display: flex; }

@@ -1,0 +1,42 @@
+name: Проверка LUMIÈRE
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    name: Backend и интеграционные проверки
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Установить FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Проверить backend
+        run: dotnet test BroadcastStudio.sln --configuration Release
+  frontend:
+    name: Frontend и production-сборка
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/broadcast-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/broadcast-web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+  compose:
+    name: Конфигурация Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Проверить конфигурацию
+        run: ./scripts/init-env.sh && docker compose config --quiet
