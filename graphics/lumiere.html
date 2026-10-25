@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;font-family:Arial,sans-serif}#scene{position:relative;width:1920px;height:1080px}.layer{position:absolute;box-sizing:border-box;display:flex;align-items:center;padding:0 20px;overflow:hidden;font-weight:600;white-space:pre-wrap;animation:enter .45s ease-out}.ticker span{display:inline-block;white-space:nowrap;padding-left:100%;animation:ticker 24s linear infinite}.logo{letter-spacing:4px}.subtitle{justify-content:center;text-align:center}@keyframes enter{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+</style></head><body><div id="scene"></div><script>
+'use strict';
+let content={elements:[]};
+function update(value){
+ try{content=typeof value==='string'?JSON.parse(value):value;render()}catch{document.getElementById('scene').replaceChildren()}
+}
+function render(){
+ const scene=document.getElementById('scene');scene.replaceChildren();
+ for(const e of (content.elements||[]).slice(0,20)){
+  const node=document.createElement('div');node.className='layer '+e.kind;
+  Object.assign(node.style,{left:e.x+'px',top:e.y+'px',width:e.width+'px',height:e.height+'px',fontSize:e.fontSize+'px',color:e.color,background:e.background});
+  const text=document.createElement('span');text.textContent=e.text;node.append(text);scene.append(node);
+ }
+}
+function play(){document.getElementById('scene').style.display='block';render()}
+function stop(){document.getElementById('scene').style.display='none'}
+function next(){play()}
+</script></body></html>

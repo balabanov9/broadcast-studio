@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.next/
+.env
+**/appsettings.Local.json
+media/
+artifacts/
+*.db
+*.db-shm
+*.db-wal
+geoip/*.mmdb
+**/*.tsbuildinfo

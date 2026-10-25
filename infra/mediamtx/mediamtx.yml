@@ -1,0 +1,23 @@
+logLevel: warn
+api: yes
+apiAddress: :9997
+metrics: no
+authMethod: http
+authHTTPAddress: http://api:8080/internal/media-auth
+authHTTPExclude: []
+rtsp: no
+rtmp: yes
+rtmpAddress: :1935
+hls: yes
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsVariant: mpegts
+hlsSegmentCount: 7
+hlsSegmentDuration: 2s
+hlsAllowOrigins: []
+webrtc: no
+srt: no
+paths:
+  all_others:
+    source: publisher
+    overridePublisher: no

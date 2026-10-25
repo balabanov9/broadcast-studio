@@ -1,0 +1,1 @@
+Здесь разместите лицензионную базу GeoLite2-City.mmdb или GeoLite2-Country.mmdb от MaxMind. База и ключи не хранятся в Git. Для Country укажите GEOIP_DATABASE=GeoLite2-Country.mmdb в .env. После замены базы перезапустите API. Без базы включить ограничения нельзя.

@@ -1,0 +1,89 @@
+name: lumiere
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: broadcast
+      POSTGRES_USER: broadcast
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Запустите scripts/init-env.sh}
+    volumes: [postgres:/var/lib/postgresql]
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U broadcast -d broadcast"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: src/Broadcast.Api/Dockerfile
+    environment:
+      ConnectionStrings__Database: Host=postgres;Database=broadcast;Username=broadcast;Password=${POSTGRES_PASSWORD}
+      Operator__Password: ${OPERATOR_PASSWORD:?Задайте пароль оператора}
+      PublicOrigin: ${PUBLIC_ORIGIN:-http://localhost:8088}
+      Caspar__Host: casparcg
+      Media__PublishSecret: ${MEDIA_PUBLISH_SECRET:?Задайте секрет медиапубликации}
+      Media__HookSecret: ${MEDIA_HOOK_SECRET:?Задайте секрет обратного вызова}
+      Media__Directory: /media
+      DataProtection__Directory: /keys
+      GeoIP__Database: /geoip/${GEOIP_DATABASE:-GeoLite2-City.mmdb}
+      Proxy__Address: 172.29.80.10
+    volumes:
+      - media:/media
+      - keys:/keys
+      - ./geoip:/geoip:ro
+    networks: [backend, edge]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8080/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+  web:
+    build: ./src/broadcast-web
+    environment:
+      API_INTERNAL_URL: http://api:8080
+    networks: [backend]
+    restart: unless-stopped
+  mediamtx:
+    image: bluenviron/mediamtx:1.15.6
+    environment:
+      MTX_AUTHHTTPADDRESS: http://api:8080/internal/media-auth?secret=${MEDIA_HOOK_SECRET}
+    volumes: [./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro]
+    ports: ["1935:1935"]
+    networks: [backend]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+  casparcg:
+    build: ./infra/casparcg
+    volumes:
+      - media:/media:ro
+      - ./graphics:/templates:ro
+    networks: [backend]
+    shm_size: 1gb
+    depends_on: [mediamtx]
+    restart: unless-stopped
+  gateway:
+    image: nginx:1.28-alpine
+    volumes: [./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro]
+    ports: ["${HTTP_BIND:-127.0.0.1}:8088:8088"]
+    networks:
+      backend: {}
+      edge: { ipv4_address: 172.29.80.10 }
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_started }
+    restart: unless-stopped
+volumes:
+  postgres:
+  media:
+  keys:
+networks:
+  backend:
+  edge:
+    ipam:
+      config: [{ subnet: 172.29.80.0/24 }]
