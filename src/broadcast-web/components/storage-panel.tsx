@@ -116,7 +116,7 @@ export function StoragePanel({
           <Cloud size={17} />
           Внешнее хранилище S3
         </span>
-        <span className="tag">ПРЯМОЕ ВОСПРОИЗВЕДЕНИЕ</span>
+        <span className="tag">Без копирования на диск</span>
       </div>
       <div className="grid gap-7 p-6 xl:grid-cols-[330px_1fr]">
         <form

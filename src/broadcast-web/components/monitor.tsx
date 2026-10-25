@@ -27,7 +27,10 @@ export function Monitor({
       player.loadSource(url);
       player.attachMedia(video);
       player.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) setError("Поток недоступен. Проверьте медиадвижок.");
+        if (data.fatal)
+          setError(
+            "Видео не пришло. Проверьте источник и подключение к CasparCG.",
+          );
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl"))
       video.src = url;
@@ -43,7 +46,7 @@ export function Monitor({
         <span className="dot" />
         {label}
         <span className="ml-auto text-[10px] tracking-normal text-slate-400">
-          {program ? "ВЫХОД КАНАЛА" : "ПРОСМОТР ИСТОЧНИКА"}
+          {program ? "Что видят зрители" : "Проверка перед эфиром"}
         </span>
       </div>
       <div className="video-frame">
@@ -63,10 +66,8 @@ export function Monitor({
         {(!playing || !url) && (
           <div className="video-empty">
             <div className="crosshair" />
-            <span>
-              {error || (url ? "Ожидание видеопотока" : "Источник не выбран")}
-            </span>
-            <small>{name || "Выберите источник в коммутационной панели"}</small>
+            <span>{error || (url ? "Ждём видео…" : "Источник не выбран")}</span>
+            <small>{name || "Нажмите на карточку источника ниже"}</small>
           </div>
         )}
         <span className="safe-area" />

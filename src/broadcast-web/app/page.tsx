@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import {
+  BookOpen,
   Activity,
   ArrowRight,
   CalendarDays,
@@ -21,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Help } from "@/components/help";
 import { Monitor } from "@/components/monitor";
 import { StoragePanel } from "@/components/storage-panel";
 import { OperatorSettings } from "@/components/operator-settings";
@@ -42,6 +44,7 @@ const tabs = [
   { id: "graphics", title: "Графика", icon: Layers3 },
   { id: "iptv", title: "IPTV и подключения", icon: Waves },
   { id: "settings", title: "Настройки", icon: Settings2 },
+  { id: "help", title: "Инструкция", icon: BookOpen },
 ];
 function Logo() {
   return (
@@ -52,7 +55,7 @@ function Logo() {
         <span />
       </div>
       <div>
-        LUMIÈRE<small>BROADCAST SYSTEMS</small>
+        Lumière<small>Управление эфиром</small>
       </div>
     </div>
   );
@@ -182,10 +185,10 @@ export default function Studio() {
       <main className="login-screen">
         <div className="login-card">
           <Logo />
-          <div className="eyebrow mt-12">РАБОЧЕЕ МЕСТО ОПЕРАТОРА</div>
-          <h1 className="mt-3 text-3xl">Ваш эфир. Под контролем.</h1>
+          <div className="eyebrow mt-12">Lumière Broadcast</div>
+          <h1 className="mt-3 text-3xl">Вход в студию</h1>
           <p className="mb-8 mt-3 text-sm leading-6 text-slate-400">
-            Войдите, чтобы управлять каналами, программой и эфирной графикой.
+            Введите пароль оператора.
           </p>
           <form
             onSubmit={(e) => {
@@ -214,18 +217,16 @@ export default function Studio() {
               </div>
             )}
             <Button className="mt-6 w-full" disabled={busy}>
-              Войти в аппаратную
+              Войти
               <ArrowRight size={15} />
             </Button>
           </form>
           <div className="mt-8 flex items-center gap-2 text-xs text-slate-500">
             <ShieldCheck size={14} />
-            Доступ к управлению защищён
+            Пароль можно изменить в настройках студии.
           </div>
         </div>
-        <span className="login-footer">
-          LUMIÈRE / BROADCAST AUTOMATION / MVP 0.1
-        </span>
+        <span className="login-footer">Lumière Broadcast · 0.2</span>
       </main>
     );
   const visible = data?.channel.id === id ? data : null;
@@ -241,7 +242,7 @@ export default function Studio() {
     <div className="studio-shell">
       <aside className="sidebar">
         <Logo />
-        <div className="sidebar-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+        <div className="sidebar-label">Студия</div>
         <nav>
           {tabs.map((item) => (
             <button
@@ -258,7 +259,7 @@ export default function Studio() {
         <div className="sidebar-bottom">
           <div className="mb-5 flex items-center gap-2 text-xs text-slate-400">
             <span className={`status-led ${connected ? "online" : ""}`} />
-            {connected ? "События подключены" : "Обновление каждые 5 с"}
+            {connected ? "На связи" : "Проверяем состояние каждые 5 с"}
           </div>
           <button
             onClick={() =>
@@ -272,7 +273,7 @@ export default function Studio() {
             <LogOut size={16} />
             Выйти из студии
           </button>
-          <small>ВЕРСИЯ 0.1 · MVP</small>
+          <small>Lumière 0.2</small>
         </div>
       </aside>
       <div className="main-shell">
@@ -303,6 +304,15 @@ export default function Studio() {
             </Button>
           </div>
           <div className="topbar-right">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="help-button"
+              onClick={() => setTab("help")}
+            >
+              <BookOpen size={15} />
+              Инструкция
+            </Button>
             <span className="tag">1080p25</span>
             <div className="clock">
               {clock || "—:—:—"}
@@ -314,12 +324,7 @@ export default function Studio() {
         <main className="workspace">
           <div className="page-heading">
             <div>
-              <div className="eyebrow">
-                СТУДИЯ /{" "}
-                {tabs
-                  .find((t) => t.id === tab)
-                  ?.title.toLocaleUpperCase("ru-RU")}
-              </div>
+              <div className="eyebrow">{c?.name || "Студия"}</div>
               <h1>
                 {tab === "control"
                   ? "Эфирная аппаратная"
@@ -327,8 +332,15 @@ export default function Studio() {
               </h1>
               <p>
                 {tab === "control"
-                  ? "Каждый кадр на своём месте."
-                  : "Единое пространство управления телеканалом."}
+                  ? "Выберите источник слева и переключите его в эфир."
+                  : {
+                      media: "Загрузите видео с компьютера или подключите S3.",
+                      schedule: "Соберите плейлист и задайте время передач.",
+                      graphics: "Разместите логотип и надписи поверх видео.",
+                      iptv: "Адреса для OBS, зрителей и программа передач.",
+                      settings: "Пароль оператора и доступ к студии.",
+                      help: "Пошагово: от первого входа до эфира по расписанию.",
+                    }[tab] || ""}
               </p>
             </div>
             {c && (
@@ -337,10 +349,10 @@ export default function Studio() {
               >
                 <span className="dot" />
                 {c.error
-                  ? "ОШИБКА ДВИЖКА"
+                  ? "Нет связи с CasparCG"
                   : c.programId
-                    ? "КОМАНДА ЭФИРА ПРИНЯТА"
-                    : "ЭФИР НЕ ЗАПУЩЕН"}
+                    ? "Источник назначен"
+                    : "Эфир не запущен"}
               </span>
             )}
           </div>
@@ -402,14 +414,13 @@ export default function Studio() {
               </Button>
             </form>
           )}
-          {!channels.length ? (
+          {tab === "help" ? (
+            <Help onOpen={setTab} />
+          ) : !channels.length ? (
             <section className="empty-state panel">
               <Radio size={40} />
-              <h2>Здесь начинается ваш эфир</h2>
-              <p>
-                Создайте первый телеканал. Подготовим OBS-вход и резервный
-                источник.
-              </p>
+              <h2>Создайте телеканал</h2>
+              <p>У каждого канала будет свой эфир, расписание и ключ OBS.</p>
               <Button onClick={() => setNewChannel(true)}>
                 <Plus size={16} />
                 Создать телеканал
@@ -459,7 +470,10 @@ export default function Studio() {
                       </span>
                       <div>
                         <h3>Переход в эфир</h3>
-                        <p>Выберите Preview, затем выполните переход</p>
+                        <p>
+                          Preview — проверка источника. Program — то, что видят
+                          зрители.
+                        </p>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -486,7 +500,7 @@ export default function Studio() {
                           })
                         }
                       >
-                        CUT
+                        Сразу <small>CUT</small>
                         <ArrowRight size={15} />
                       </Button>
                       <Button
@@ -500,7 +514,7 @@ export default function Studio() {
                           })
                         }
                       >
-                        MIX
+                        Плавно <small>MIX</small>
                         <ArrowRight size={15} />
                       </Button>
                     </div>
@@ -509,7 +523,7 @@ export default function Studio() {
                     <section className="panel">
                       <div className="panel-title">
                         <span>
-                          Источники сигнала <small>{data.sources.length}</small>
+                          Источники <small>{data.sources.length}</small>
                         </span>
                         <button
                           onClick={() => setTab("media")}
@@ -529,6 +543,7 @@ export default function Studio() {
                                 revision: c.revision,
                               })
                             }
+                            title={`Выбрать «${s.name}» в Preview`}
                             className={`source-card ${s.id === c.previewId ? "is-preview" : ""} ${s.id === c.programId ? "is-program" : ""}`}
                           >
                             <div
@@ -587,16 +602,14 @@ export default function Studio() {
                         </span>
                       </div>
                       <div className="p-5">
-                        <div className="eyebrow mb-2">
-                          ТЕКУЩИЙ БЛОК ПО РАСПИСАНИЮ
-                        </div>
+                        <div className="eyebrow mb-2">Сейчас в расписании</div>
                         <h3 className="text-lg">
-                          {activeBlock?.title || "Резервный эфир"}
+                          {activeBlock?.title || "Между передачами"}
                         </h3>
                         <p className="my-3 text-xs text-slate-400">
                           {activeBlock
                             ? `${time(activeBlock.startsAt)} — ${time(activeBlock.endsAt)}`
-                            : "Вне расписания воспроизводится резерв"}
+                            : "Когда передач нет, играет резервный источник."}
                         </p>
                         <label>
                           Резервный источник
@@ -642,7 +655,7 @@ export default function Studio() {
                   <section className="panel mt-5">
                     <div className="panel-title">
                       <span>Журнал эфира</span>
-                      <span className="tag">ПОСЛЕДНИЕ СОБЫТИЯ</span>
+                      <span className="tag">Последние действия</span>
                     </div>
                     <div className="event-log">
                       {data.events.length ? (
@@ -655,7 +668,7 @@ export default function Studio() {
                         ))
                       ) : (
                         <p className="p-5 text-sm text-slate-500">
-                          События появятся после первой команды управления.
+                          Здесь появятся переключения и действия автопилота.
                         </p>
                       )}
                     </div>
@@ -666,7 +679,7 @@ export default function Studio() {
                 <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
                   <section className="panel">
                     <div className="panel-title">
-                      Библиотека канала
+                      Видео и источники
                       <span className="tag">
                         {data.sources.length} ИСТОЧНИКОВ
                       </span>
@@ -733,7 +746,7 @@ export default function Studio() {
                     </div>
                   </section>
                   <section className="panel self-start p-5">
-                    <h3 className="mb-5">Добавить цветовой источник</h3>
+                    <h3 className="mb-5">Цветовой источник</h3>
                     <form
                       className="space-y-4"
                       onSubmit={(e) => {
@@ -792,6 +805,7 @@ export default function Studio() {
               )}
               {tab === "graphics" && (
                 <GraphicsEditor
+                  channelId={id}
                   key={id}
                   initial={JSON.parse(c.graphicsJson).elements as Graphic[]}
                   busy={busy}
@@ -826,7 +840,7 @@ export default function Studio() {
             </>
           )}
           <footer className="workspace-footer">
-            <span>LUMIÈRE BROADCAST</span>
+            <span>Lumière Broadcast</span>
             <span>
               {c
                 ? `КАНАЛ ${String(c.slot).padStart(2, "0")} / РЕВИЗИЯ ${c.revision}`
@@ -857,7 +871,7 @@ function SchedulePanel({
       <section className="panel">
         <div className="panel-title">
           <span>Программа передач</span>
-          <span className="tag">ВРЕМЯ ВАШЕГО БРАУЗЕРА</span>
+          <span className="tag">Местное время</span>
         </div>
         <div className="p-5">
           <form
@@ -1124,7 +1138,7 @@ function Connections({ c }: { c: Channel }) {
           MIX.
         </p>
         <p className="mt-4 text-sm leading-7 text-slate-400">
-          Для плееров IPTV добавьте M3U-плейлист. EPG строится из расписания;
+          Добавьте M3U в IPTV-плеер. Программа передач берётся из расписания;
           время экспортируется в UTC.
         </p>
         <p className="mt-4 text-xs leading-6 text-slate-500">

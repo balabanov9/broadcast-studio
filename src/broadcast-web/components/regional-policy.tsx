@@ -80,13 +80,13 @@ export function RegionalPolicy({
       </div>
       <div className="grid gap-7 p-6 lg:grid-cols-2">
         <div>
-          <h3 className="text-lg">Отдельная заставка для региона</h3>
+          <h3 className="text-lg">Кто может смотреть эфир</h3>
           <p className="mb-6 mt-3 text-sm leading-6 text-slate-400">
             Зрители из запрещённых регионов получают видеопоток с заставкой и
             тишиной. Основная программа канала продолжает идти для остальных.
           </p>
           {!policy?.geoAvailable && (
-            <div className="error mb-5">
+            <div className="notice mb-5">
               Подключите GeoLite2 City или Country в папке geoip и перезапустите
               API. До подключения базы включение ограничений недоступно.
             </div>

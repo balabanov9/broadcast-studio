@@ -37,7 +37,7 @@ export type Block = {
 };
 export type Graphic = {
   id: string;
-  kind: "logo" | "title" | "ticker" | "subtitle";
+  kind: "logo" | "title" | "ticker" | "subtitle" | "image";
   text: string;
   x: number;
   y: number;
@@ -46,6 +46,7 @@ export type Graphic = {
   fontSize: number;
   color: string;
   background: string;
+  imageId?: string | null;
 };
 export type Detail = {
   channel: Channel;

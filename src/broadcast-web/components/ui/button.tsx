@@ -3,14 +3,14 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:pointer-events-none disabled:opacity-40",
+  "studio-button inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
-        default: "bg-teal-400 text-slate-950 hover:bg-teal-300",
-        outline: "border border-white/15 bg-white/5 hover:bg-white/10",
-        ghost: "hover:bg-white/10",
-        destructive: "bg-red-500 text-white hover:bg-red-400",
+        default: "button-primary",
+        outline: "button-secondary",
+        ghost: "button-ghost",
+        destructive: "button-destructive",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -1,15 +1,18 @@
 "use client";
 import { useRef, useState } from "react";
-import { Plus, Save, Trash2, Radio } from "lucide-react";
+import Image from "next/image";
+import { Plus, Save, Trash2, Radio, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Graphic } from "@/lib/api";
+import { api, type Graphic } from "@/lib/api";
 const labels = {
-  logo: "Логотип",
-  title: "Титр",
+  image: "Логотип",
+  logo: "Текст",
+  title: "Плашка",
   ticker: "Бегущая строка",
   subtitle: "Субтитр",
 };
 export function GraphicsEditor({
+  channelId,
   initial,
   onSave,
   onAir,
@@ -17,6 +20,7 @@ export function GraphicsEditor({
   busy,
   on,
 }: {
+  channelId: string;
   initial: Graphic[];
   onSave: (scene: Graphic[]) => Promise<boolean>;
   onAir: () => void;
@@ -27,6 +31,45 @@ export function GraphicsEditor({
   const [elements, setElements] = useState(initial);
   const [selected, setSelected] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  async function upload(file: File) {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const result = await api<{
+        imageId: string;
+        width: number;
+        height: number;
+      }>(`/api/channels/${channelId}/graphics/assets`, "POST", body);
+      const id = crypto.randomUUID();
+      const width = Math.min(260, (220 * result.width) / result.height);
+      const height = (width * result.height) / result.width;
+      const element: Graphic = {
+        id,
+        kind: "image",
+        text: "Логотип канала",
+        x: Math.round(1820 - width),
+        y: 70,
+        width: Math.max(20, Math.round(width)),
+        height: Math.max(20, Math.round(height)),
+        fontSize: 44,
+        color: "#ffffff",
+        background: "#000000",
+        imageId: result.imageId,
+      };
+      setElements((list) => [...list, element]);
+      setSelected(id);
+      setDirty(true);
+    } catch (e) {
+      setUploadError((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
   const canvas = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     id: string;
@@ -59,15 +102,15 @@ export function GraphicsEditor({
         kind === "logo"
           ? "LUMIÈRE"
           : kind === "ticker"
-            ? "Главные события · Прямой эфир · Будьте в курсе"
-            : "Новый графический слой",
+            ? "Введите текст бегущей строки"
+            : "Введите текст",
       x: 100,
       y: kind === "logo" ? 80 : kind === "ticker" ? 970 : 760,
       width: kind === "logo" ? 320 : 1500,
       height: kind === "logo" ? 90 : 100,
       fontSize: 44,
       color: "#ffffff",
-      background: "#143536",
+      background: "#1d1d1f",
     };
     setElements([...elements, e]);
     setSelected(id);
@@ -77,7 +120,7 @@ export function GraphicsEditor({
     <div className="editor-layout">
       <section className="panel">
         <div className="panel-title">
-          <span>Композиция графики</span>
+          <span>Логотип и надписи</span>
           <span className="tag">1920 × 1080</span>
         </div>
         <div
@@ -118,7 +161,7 @@ export function GraphicsEditor({
                 width: `${e.width / 19.2}%`,
                 height: `${e.height / 10.8}%`,
                 color: e.color,
-                background: e.background,
+                background: e.kind === "image" ? "transparent" : e.background,
                 fontSize: `${e.fontSize / 19.2}cqw`,
               }}
               onKeyDown={(event) => {
@@ -136,27 +179,67 @@ export function GraphicsEditor({
                 };
               }}
             >
-              <span>{e.text}</span>
+              {e.kind === "image" ? (
+                <Image
+                  unoptimized
+                  draggable={false}
+                  src={`/api/channels/${channelId}/graphics/assets/${e.imageId}`}
+                  alt="Логотип канала"
+                  width={e.width}
+                  height={e.height}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    pointerEvents: "none",
+                  }}
+                />
+              ) : (
+                <span>{e.text}</span>
+              )}
             </div>
           ))}
         </div>
         <div className="flex flex-wrap gap-2 p-4">
-          {Object.entries(labels).map(([key, label]) => (
-            <Button
-              key={key}
-              variant="outline"
-              size="sm"
-              disabled={elements.length >= 20}
-              onClick={() => add(key as Graphic["kind"])}
-            >
-              <Plus size={13} />
-              {label}
-            </Button>
-          ))}
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            style={{ display: "none" }}
+            aria-label="Файл логотипа"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) upload(file);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || uploading || elements.length >= 20}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Upload size={14} />
+            {uploading ? "Загружаем…" : "Загрузить логотип"}
+          </Button>
+          {Object.entries(labels)
+            .filter(([key]) => key !== "image")
+            .map(([key, label]) => (
+              <Button
+                key={key}
+                variant="outline"
+                size="sm"
+                disabled={elements.length >= 20}
+                onClick={() => add(key as Graphic["kind"])}
+              >
+                <Plus size={13} />
+                {label}
+              </Button>
+            ))}
         </div>
         <div className="flex flex-wrap items-center gap-3 border-t border-white/10 p-4">
           <Button
-            disabled={busy || !dirty}
+            disabled={busy || uploading || !dirty}
             onClick={async () => {
               if (await onSave(elements)) setDirty(false);
             }}
@@ -166,33 +249,40 @@ export function GraphicsEditor({
           </Button>
           <Button
             variant={on ? "destructive" : "outline"}
-            disabled={busy || dirty}
+            disabled={busy || uploading || dirty}
             onClick={on ? onHide : onAir}
           >
             <Radio size={14} />
-            {on ? "Убрать из эфира" : "Выдать в эфир"}
+            {on ? "Убрать из эфира" : "Показать в эфире"}
           </Button>
           <small className="text-slate-400">
             {dirty
               ? "Есть несохранённые изменения"
               : on
-                ? "Сохранённая композиция в эфире"
-                : "Композиция готова"}
+                ? "Графика в эфире"
+                : "Изменения сохранены"}
           </small>
         </div>
       </section>
       <aside className="panel p-5">
+        {uploadError && (
+          <p role="alert" className="error mb-4">
+            {uploadError}
+          </p>
+        )}
         <h3 className="mb-5">Свойства слоя</h3>
         {active ? (
           <div className="space-y-4">
-            <label>
-              Текст
-              <textarea
-                value={active.text}
-                maxLength={1000}
-                onChange={(e) => update(active.id, { text: e.target.value })}
-              />
-            </label>
+            {active.kind !== "image" && (
+              <label>
+                Текст
+                <textarea
+                  value={active.text}
+                  maxLength={1000}
+                  onChange={(e) => update(active.id, { text: e.target.value })}
+                />
+              </label>
+            )}
             <div className="grid grid-cols-2 gap-3">
               {(
                 [
@@ -202,41 +292,55 @@ export function GraphicsEditor({
                   ["height", "Высота"],
                   ["fontSize", "Кегль"],
                 ] as const
-              ).map(([key, label]) => (
-                <label key={key}>
-                  {label}
+              )
+                .filter(
+                  ([key]) => active.kind !== "image" || key !== "fontSize",
+                )
+                .map(([key, label]) => (
+                  <label key={key}>
+                    {label}
+                    <input
+                      type="number"
+                      min={key === "fontSize" ? 12 : 0}
+                      max={key === "fontSize" ? 160 : 1920}
+                      value={active[key]}
+                      onChange={(e) =>
+                        update(active.id, { [key]: Number(e.target.value) })
+                      }
+                    />
+                  </label>
+                ))}
+            </div>
+            {active.kind !== "image" && (
+              <div className="grid grid-cols-2 gap-3">
+                <label>
+                  Цвет текста
                   <input
-                    type="number"
-                    min={key === "fontSize" ? 12 : 0}
-                    max={key === "fontSize" ? 160 : 1920}
-                    value={active[key]}
+                    type="color"
+                    value={active.color}
                     onChange={(e) =>
-                      update(active.id, { [key]: Number(e.target.value) })
+                      update(active.id, { color: e.target.value })
                     }
                   />
                 </label>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label>
-                Текст
-                <input
-                  type="color"
-                  value={active.color}
-                  onChange={(e) => update(active.id, { color: e.target.value })}
-                />
-              </label>
-              <label>
-                Фон
-                <input
-                  type="color"
-                  value={active.background}
-                  onChange={(e) =>
-                    update(active.id, { background: e.target.value })
-                  }
-                />
-              </label>
-            </div>
+                <label>
+                  Фон
+                  <input
+                    type="color"
+                    value={active.background}
+                    onChange={(e) =>
+                      update(active.id, { background: e.target.value })
+                    }
+                  />
+                </label>
+              </div>
+            )}
+            {active.kind === "image" && (
+              <p className="text-xs text-slate-500">
+                Изображение вписывается в рамку без обрезки. PNG сохраняет
+                прозрачный фон.
+              </p>
+            )}
             <Button
               variant="destructive"
               size="sm"
@@ -252,13 +356,13 @@ export function GraphicsEditor({
           </div>
         ) : (
           <p className="text-sm leading-6 text-slate-400">
-            Добавьте слой или выберите его на холсте. Перемещайте мышью, точные
-            координаты задавайте здесь.
+            Загрузите логотип или добавьте надпись. Выберите слой на холсте;
+            точные координаты задавайте здесь.
           </p>
         )}
         <div className="mt-8 border-t border-white/10 pt-4 text-xs leading-5 text-slate-500">
-          Безопасная зона — 5%. Графика рендерится в CasparCG и включается в
-          выходной видеопоток.
+          Пунктир — отступ от края кадра. После сохранения нажмите «Показать в
+          эфире», чтобы добавить графику в выходной видеопоток.
         </div>
       </aside>
     </div>
