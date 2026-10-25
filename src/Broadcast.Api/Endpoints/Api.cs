@@ -174,10 +174,14 @@ public static partial class Api
             await control.Run(id, async (db, c) => { var b = await db.Schedule.SingleOrDefaultAsync(x => x.Id == blockId && x.ChannelId == id, ct) ?? throw new KeyNotFoundException("Блок не найден"); db.Remove(b); }, ct);
             return Results.NoContent();
         });
-        api.MapPut("/channels/{id:guid}/graphics", async (Guid id, GraphicsInput input, Control control, CancellationToken ct) =>
+        api.MapPut("/channels/{id:guid}/graphics", async (Guid id, GraphicsInput input, Control control, IConfiguration cfg, CancellationToken ct) =>
         {
             ValidateScene(input.Scene);
-            await control.Run(id, (db, c) => { Control.Check(c, input.Revision); c.GraphicsJson = Infrastructure.Amcp.Scene(input.Scene); return Task.CompletedTask; }, ct);
+            foreach (var element in input.Scene.Elements.Where(x => x.Kind == "image"))
+                if (!File.Exists(Path.Combine(cfg["Media:Directory"] ?? "/media", "logos", id.ToString("N"), element.ImageId + ".png"))) throw new ArgumentException("Логотип не найден в этом канале. Загрузите изображение ещё раз.");
+            var mediaRoot = (cfg["Caspar:MediaDirectory"] ?? "/media").Replace('\\', '/').TrimEnd('/');
+            var scene = input.Scene with { AssetBaseUri = new Uri(mediaRoot + "/logos/" + id.ToString("N") + "/").AbsoluteUri };
+            await control.Run(id, (db, c) => { Control.Check(c, input.Revision); c.GraphicsJson = Infrastructure.Amcp.Scene(scene); return Task.CompletedTask; }, ct);
             return Results.Ok();
         });
         api.MapPost("/channels/{id:guid}/graphics", async (Guid id, ToggleInput input, Control control, CancellationToken ct) =>
@@ -212,7 +216,10 @@ public static partial class Api
     {
         if (scene.Elements.Count > 20 || scene.Elements.Select(x => x.Id).Distinct().Count() != scene.Elements.Count) throw new ArgumentException("До 20 слоёв с уникальными идентификаторами");
         foreach (var e in scene.Elements)
-            if (e.Kind is not ("logo" or "title" or "ticker" or "subtitle") || e.Text.Length > 1000 || e.X < 0 || e.Y < 0 || e.Width < 20 || e.Height < 20 || e.X + e.Width > 1920 || e.Y + e.Height > 1080 || e.FontSize is < 12 or > 160 || !ColorRegex().IsMatch(e.Color) || !ColorRegex().IsMatch(e.Background)) throw new ArgumentException("Некорректные параметры графического слоя");
+        {
+            if (e.Kind == "image" && (e.ImageId is null || !Guid.TryParseExact(e.ImageId, "N", out _))) throw new ArgumentException("Выберите загруженный логотип");
+            if (e.Kind is not ("logo" or "title" or "ticker" or "subtitle" or "image") || e.Text.Length > 1000 || e.X < 0 || e.Y < 0 || e.Width < 20 || e.Height < 20 || e.X + e.Width > 1920 || e.Y + e.Height > 1080 || e.FontSize is < 12 or > 160 || !ColorRegex().IsMatch(e.Color) || !ColorRegex().IsMatch(e.Background)) throw new ArgumentException("Некорректные параметры графического слоя");
+        }
     }
     private static async Task<IResult> Upload(Guid id, IFormFile file, Control control, IConfiguration cfg, CancellationToken ct)
     {

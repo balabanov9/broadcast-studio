@@ -68,5 +68,5 @@ public sealed class AirEvent
     public DateTimeOffset At { get; set; } = DateTimeOffset.UtcNow;
     [MaxLength(500)] public string Message { get; set; } = "";
 }
-public sealed record GraphicElement(string Id, string Kind, string Text, int X, int Y, int Width, int Height, int FontSize, string Color, string Background);
-public sealed record GraphicScene(List<GraphicElement> Elements);
+public sealed record GraphicElement(string Id, string Kind, string Text, int X, int Y, int Width, int Height, int FontSize, string Color, string Background, string? ImageId = null);
+public sealed record GraphicScene(List<GraphicElement> Elements, string? AssetBaseUri = null);

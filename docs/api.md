@@ -35,7 +35,7 @@ JSON использует camelCase, `SourceKind`: 0 — цвет, 1 — лок�
 
 SignalR `/hubs/air` отправляет событие `changed(channelId)`, после него клиент обновляет API. Hub не принимает команд эфира.
 
-Графический слой: `{id,kind,text,x,y,width,height,fontSize,color,background}`. Виды: `logo`, `title`, `ticker`, `subtitle`. Координаты Full HD, до 20 слоёв. Используется текстовый логотип; загрузка PNG/SVG-логотипа и импорт временных SRT/WebVTT дорожек — следующий этап. HTML/CSS/JS оператора не исполняются, текст вставляется через textContent.
+Графический слой: `{id,kind,text,x,y,width,height,fontSize,color,background}`. Виды: `logo`, `title`, `ticker`, `subtitle`, `image`. Для `image` передаётся `imageId`, полученный при загрузке логотипа. Координаты Full HD, до 20 слоёв. PNG/JPEG/WebP загружаются через `POST /api/channels/{id}/graphics/assets` (multipart `file`, до 5 МБ). Результат: `{imageId,width,height}`. Изображение нормализуется в PNG RGBA до 1024×1024 и сохраняет прозрачность. `GET /api/channels/{id}/graphics/assets/{imageId}` требует входа и проверяет канал. `assetBaseUri` композиции назначает сервер; клиент не может подставить свой файловый путь. SVG и импорт временных SRT/WebVTT дорожек пока не поддерживаются. HTML/CSS/JS оператора не исполняются, текст вставляется через textContent.
 
 Внутренний `/internal/media-auth` вызывается только MediaMTX с shared-secret и проверяет engine/OBS. Публичный nginx этот путь не проксирует.
 

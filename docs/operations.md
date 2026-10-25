@@ -102,3 +102,9 @@ API `/health/live` проверяет процесс, `/health/ready` — дос
 - https://docs.selectel.ru/terraform/configure-terraform-state-storage/
 - https://docs.selectel.ru/s3/manage/configure-storage-update/
 - https://github.com/vk-cs/docs-public/tree/master/docs/ru/storage/s3
+
+## Логотипы
+
+Загрузка PNG/JPEG/WebP находится в разделе «Графика». PNG сохраняет альфа-канал. В API файлы хранятся в `Media:Directory/logos/{channelId}/{imageId}.png`. CasparCG читает их по общему файловому пути `Caspar:MediaDirectory` (по умолчанию `/media`), а не через cookie-авторизацию API. В Docker существующий volume media уже подключён к обоим сервисам. Для внешнего CasparCG подключите этот каталог и задайте корректный путь. Обновите шаблон `graphics/lumiere.html`, затем снимите и повторно включите графику.
+
+Полные действия оператора: [user-guide.md](user-guide.md).

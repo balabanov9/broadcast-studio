@@ -207,6 +207,38 @@ public sealed class ApiTests
         finally { File.Delete(file); }
     }
 
+    [Fact]
+    public async Task PngLogoPreservesAlphaAndCannotCrossChannelBoundary()
+    {
+        using var factory = new StudioFactory(); using var client = await factory.Operator();
+        var channel = await Create(client); var other = await Create(client, "logo-other");
+        var id = channel.GetProperty("id").GetGuid(); var otherId = other.GetProperty("id").GetGuid();
+        using var upload = new MultipartFormDataContent();
+        upload.Add(new ByteArrayContent(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAD0lEQVR4nGP4z8AARAwMAAz8Af9c/RSVAAAAAElFTkSuQmCC")), "file", "логотип.png");
+        var asset = await Json(await client.PostAsync($"/api/channels/{id}/graphics/assets", upload));
+        var imageId = asset.GetProperty("imageId").GetString();
+        var image = await client.GetByteArrayAsync($"/api/channels/{id}/graphics/assets/{imageId}");
+        Assert.Equal(6, image[25]); // PNG RGBA, прозрачность не сведена к цветному фону.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/channels/{otherId}/graphics/assets/{imageId}")).StatusCode);
+        var scene = new { elements = new[] { new { id = "logo", kind = "image", imageId, text = "", x = 1500, y = 80, width = 220, height = 110, fontSize = 44, color = "#ffffff", background = "#000000" } }, assetBaseUri = "file:///etc/" };
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/channels/{otherId}/graphics", new { scene, revision = 0 })).StatusCode);
+        (await client.PutAsJsonAsync($"/api/channels/{id}/graphics", new { scene, revision = 0 })).EnsureSuccessStatusCode();
+        var detail = await Json(await client.GetAsync($"/api/channels/{id}"));
+        var saved = detail.GetProperty("channel").GetProperty("graphicsJson").GetString()!;
+        Assert.Contains($"file:///media/logos/{id:N}/", saved); Assert.DoesNotContain("file:///etc", saved);
+        (await client.PostAsJsonAsync($"/api/channels/{id}/graphics", new { enabled = true, revision = 1 })).EnsureSuccessStatusCode();
+        Assert.Contains(factory.Amcp.Commands, x => x.StartsWith("CG ") && x.Contains(imageId!) && x.Contains($"/media/logos/{id:N}/"));
+        using var anonymous = factory.CreateClient(); Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"/api/channels/{id}/graphics/assets/{imageId}")).StatusCode);
+    }
+    [Fact]
+    public async Task BrokenLogoIsRejected()
+    {
+        using var factory = new StudioFactory(); using var client = await factory.Operator(); var channel = await Create(client);
+        var id = channel.GetProperty("id").GetGuid();
+        using var upload = new MultipartFormDataContent(); upload.Add(new ByteArrayContent([0, 1, 2]), "file", "broken.png");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync($"/api/channels/{id}/graphics/assets", upload)).StatusCode);
+    }
+
 }
 public sealed class TimelineTests
 {

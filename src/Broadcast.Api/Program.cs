@@ -105,6 +105,7 @@ app.UseAuthorization();
 app.MapBroadcast();
 app.MapRegional();
 app.MapStorage();
+app.MapGraphicsAssets();
 app.MapHub<AirHub>("/hubs/air").RequireAuthorization();
 await using (var scope = app.Services.CreateAsyncScope())
 {
